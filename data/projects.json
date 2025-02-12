@@ -1,0 +1,20 @@
+[
+    {
+        "title": "プロジェクト1",
+        "tags": [
+            "タグ1",
+            "タグ2"
+        ],
+        "description": "プロジェクト1の説明",
+        "url": "/projects/project1"
+    },
+    {
+        "title": "プロジェクト2",
+        "tags": [
+            "タグ3",
+            "タグ4"
+        ],
+        "description": "プロジェクト2の説明",
+        "url": "/projects/project2"
+    }
+]
