@@ -5,6 +5,7 @@ dist/
 .astro/
 
 # dependencies
+.yarn/
 node_modules/
 
 # logs
