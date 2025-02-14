@@ -1,0 +1,184 @@
+---
+import Fuse from 'fuse.js';
+
+// プロジェクトデータのインポート（仮）
+import projects from '../../data/projects.json';
+
+const fetchBlogSites = async () => {
+    const response = await fetch('https://ajshooting-blog.pages.dev/search.json');
+    const data = await response.json();
+    return data;
+};
+
+const allItems = [...projects];
+
+const options = {
+    keys: ['title', 'tags', 'description', 'url'], // projects.jsonの検索対象キー
+    includeScore: true,
+    threshold: 0.4, // 曖昧さの閾値
+};
+
+const blogOptions = {
+    keys: ['title', 'tags', 'date', 'summary', 'path', 'bodyText'], // search.jsonの検索対象キー
+    includeScore: true,
+    threshold: 0.4, // 曖昧さの閾値
+};
+
+const fuse = new Fuse(allItems, options);
+let blogFuse;
+
+(async () => {
+    const blogSites = await fetchBlogSites();
+    blogFuse = new Fuse(blogSites, blogOptions);
+})();
+
+// クライアント側で検索を実行するためのJavaScriptを記述
+---
+
+<div class="search-box">
+    <input type="text" id="search-input" placeholder="検索..." />
+    <ul id='search-results'></ul>
+</div>
+
+<script>
+    import Fuse from 'fuse.js';
+
+    let fuse: Fuse<any>;
+    let blogFuse: Fuse<any>;
+    let projectsData: any;
+    let blogSitesData: any;
+
+    const options = {
+        keys: ['title', 'tags', 'description', 'url'], // projects.jsonの検索対象キー
+        includeScore: true,
+        threshold: 0.4, // 曖昧さの閾値
+    };
+
+    const blogOptions = {
+        keys: ['title', 'tags', 'date', 'summary', 'path', 'bodyText'], // search.jsonの検索対象キー
+        includeScore: true,
+        threshold: 0.4, // 曖昧さの閾値
+    };
+
+    const fetchProjects = async () => {
+        const response = await fetch('/data/projects.json');
+        const data = await response.json();
+        return data;
+    };
+
+    const fetchBlogSites = async () => {
+        const response = await fetch('https://ajshooting-blog.pages.dev/search.json');
+        const data = await response.json();
+        return data;
+    };
+
+    const initializeFuse = async () => {
+        projectsData = await fetchProjects();
+        fuse = new Fuse(projectsData, options);
+        console.log('fuse initialized in client:', fuse);
+
+        blogSitesData = await fetchBlogSites();
+        blogFuse = new Fuse(blogSitesData, blogOptions);
+        console.log('blogFuse initialized in client:', blogFuse);
+    };
+
+    initializeFuse(); // コンポーネントのマウント時に初期化
+
+    const searchInput = document.getElementById('search-input') as HTMLInputElement; // 型アサーション
+    const searchResults = document.getElementById('search-results');
+
+    if (searchInput && searchResults) { // nullチェック
+        searchInput.addEventListener('input', () => {
+            const searchTerm = searchInput.value;
+
+            if (!fuse) {
+                console.log('fuse is not yet initialized.');
+                return;
+            }
+            const results = fuse.search(searchTerm);
+
+            let blogResults: any[] = [];
+            if (blogFuse) {
+                blogResults = blogFuse.search(searchTerm);
+            } else {
+                console.log('blogFuse is not yet initialized.');
+            }
+
+
+            searchResults.innerHTML = '';
+            searchResults.style.display = 'none';
+
+            if (searchTerm === '') {
+                return;
+            }
+
+
+            if (results.length === 0 && blogResults.length === 0) {
+                return;
+            } else {
+                searchResults.style.display = 'block';
+            }
+
+
+            [...results, ...blogResults].forEach((result: any) => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = result.item.url || result.item.path;
+                a.textContent = result.item.title;
+                li.appendChild(a);
+                searchResults.appendChild(li);
+            });
+        });
+    }
+</script>
+
+<style>
+    .search-box {
+        position: relative;
+        width: 300px;
+        margin: 20px auto;
+    }
+
+    #search-input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+
+    #search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        z-index: 10;
+        display: none;
+    }
+
+    #search-results li {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    #search-results li:last-child {
+        border-bottom: none;
+    }
+
+    #search-results a {
+        text-decoration: none;
+        color: #333;
+        display: block;
+    }
+
+    #search-results a:hover {
+        color: #0077cc;
+    }
+</style>
